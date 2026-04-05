@@ -22,7 +22,7 @@ export const EMOTION_LABELS: Record<string, string> = {
 };
 
 /** Weighted composite score → 1–10 */
-export function compositeScore(emotions: Record<string, number>): number {
+export function compositeScore(emotions: { joy: number; calm: number; sadness: number; anxiety: number; anger: number }): number {
   const { joy = 5, calm = 5, sadness = 5, anxiety = 5, anger = 5 } = emotions;
   const raw =
     joy * 1.2 + calm * 1.0 - sadness * 1.1 - anxiety * 1.0 - anger * 0.9;
