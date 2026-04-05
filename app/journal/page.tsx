@@ -24,7 +24,10 @@ function TypingIndicator() {
 
 function Bubble({ msg }: { msg: ChatMessage }) {
   const isUser = msg.role === "user";
-  const display = msg.content.replace(/<analysis>[\s\S]*?<\/analysis>/g, "").trim();
+  const display = msg.content
+    .replace(/<analysis>[\s\S]*?<\/analysis>/g, "")  // complete block
+    .replace(/<analysis>[\s\S]*/g, "")                // partial/truncated block
+    .trim();
   if (!display) return null;
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}

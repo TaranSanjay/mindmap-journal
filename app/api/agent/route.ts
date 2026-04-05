@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
         contents: geminiMessages,
-        generationConfig: { maxOutputTokens: 300, temperature: 0.75 },
+        generationConfig: { maxOutputTokens: 800, temperature: 0.75 },
       }),
     });
 
