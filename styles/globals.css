@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 36 33% 97%;
+    --foreground: 24 10% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 24 10% 10%;
+    --muted: 36 20% 93%;
+    --muted-foreground: 24 8% 46%;
+    --accent: 36 30% 88%;
+    --accent-foreground: 24 10% 10%;
+    --primary: 258 60% 52%;
+    --primary-foreground: 0 0% 100%;
+    --border: 36 15% 88%;
+    --input: 36 15% 88%;
+    --ring: 258 60% 52%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 222 20% 9%;
+    --foreground: 36 15% 94%;
+    --card: 222 18% 12%;
+    --card-foreground: 36 15% 94%;
+    --muted: 222 15% 16%;
+    --muted-foreground: 36 10% 55%;
+    --accent: 222 15% 18%;
+    --accent-foreground: 36 15% 94%;
+    --primary: 258 65% 65%;
+    --primary-foreground: 0 0% 100%;
+    --border: 222 15% 20%;
+    --input: 222 15% 20%;
+    --ring: 258 65% 65%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+    font-feature-settings: "kern" 1, "liga" 1;
+  }
+  h1, h2, h3 { @apply font-display; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { @apply bg-border rounded-full; }
+
+/* Chat bubble animation */
+@keyframes bubbleIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.bubble-in { animation: bubbleIn 0.3s cubic-bezier(0.16,1,0.3,1) forwards; }
+
+/* Typing dots */
+.typing-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  @apply bg-muted-foreground;
+  animation: typingBounce 1.2s ease infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.typing-dot:nth-child(3) { animation-delay: 0.30s; }
+@keyframes typingBounce {
+  0%,60%,100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-6px); opacity: 1; }
+}
+
+/* Emotion pill */
+.emotion-pill {
+  @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-body font-medium;
+}
