@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase-browser";
@@ -18,30 +17,27 @@ function GoogleIcon() {
 }
 
 function PasswordStrength({ password }: { password: string }) {
-  const checks = [
-    password.length >= 8,
-    /[A-Z]/.test(password),
-    /[0-9]/.test(password),
-    /[^A-Za-z0-9]/.test(password),
-  ];
-  const score = checks.filter(Boolean).length;
-  const colors = ["bg-muted", "bg-red-400", "bg-orange-400", "bg-yellow-400", "bg-emerald-400"];
+  const score = [password.length >= 8, /[A-Z]/.test(password), /[0-9]/.test(password), /[^A-Za-z0-9]/.test(password)].filter(Boolean).length;
+  const colors = ["", "#ef4444", "#f97316", "#eab308", "#10b981"];
   const labels = ["", "Weak", "Fair", "Good", "Strong"];
   if (!password) return null;
   return (
     <div className="space-y-1.5 mt-1">
       <div className="flex gap-1">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className={`h-1 flex-1 rounded-full transition-colors duration-300 ${i < score ? colors[score] : "bg-border"}`} />
+        {[0,1,2,3].map(i => (
+          <div key={i} className="h-1 flex-1 rounded-full transition-colors duration-300"
+            style={{ background: i < score ? colors[score] : "rgba(255,255,255,0.1)" }} />
         ))}
       </div>
-      <p className="text-xs text-muted-foreground">{labels[score]}</p>
+      <p className="text-xs" style={{ color: colors[score] || "rgba(255,255,255,0.3)" }}>{labels[score]}</p>
     </div>
   );
 }
 
+const inputClass = "w-full rounded-lg px-3.5 py-2.5 text-sm outline-none transition text-white placeholder-white/30 border focus:border-purple-500/60 focus:ring-1 focus:ring-purple-500/30";
+const inputStyle = { background: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.1)" };
+
 export default function SignupPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
@@ -53,16 +49,14 @@ export default function SignupPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
-    setError(null);
-    setLoading(true);
+    setError(null); setLoading(true);
     const supabase = createClient();
     const { error } = await supabase.auth.signUp({
-      email,
-      password,
+      email, password,
       options: { emailRedirectTo: `${window.location.origin}/api/auth/callback` },
     });
     setLoading(false);
-    if (error) { setError(error.message); } else { setDone(true); }
+    if (error) { setError(error.message); } else { window.location.href = "/journal"; }
   }
 
   async function handleGoogle() {
@@ -76,99 +70,82 @@ export default function SignupPage() {
 
   if (done) {
     return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-card border border-border rounded-2xl p-8 text-center space-y-4"
-      >
-        <CheckCircle2 size={40} className="text-emerald-500 mx-auto" />
-        <h2 className="font-display text-xl font-semibold">You&apos;re in!</h2>
-        <p className="text-sm text-muted-foreground font-body">
-          Account created for <strong>{email}</strong>.
-        </p>
-        <Link href="/auth/login" className="inline-block text-sm text-primary hover:underline mt-2">
-          Sign in now
-        </Link>
+      <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
+        className="rounded-2xl p-8 text-center space-y-4 border"
+        style={{ background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.08)" }}>
+        <CheckCircle2 size={40} className="mx-auto" style={{ color: "#10b981" }} />
+        <h2 className="font-display text-xl font-semibold text-white">You&apos;re in!</h2>
+        <p className="text-sm text-white/40">Account created for <span className="text-white/70">{email}</span>.</p>
+        <Link href="/auth/login" style={{ color: "#a78bfa" }} className="inline-block text-sm hover:underline mt-2">Sign in now</Link>
       </motion.div>
     );
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="bg-card border border-border rounded-2xl p-8 shadow-sm"
-    >
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+      className="rounded-2xl p-8 border"
+      style={{ background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.08)" }}>
+
       <div className="mb-8">
-        <Link href="/" className="font-display text-2xl font-semibold tracking-tight">
-          Mind<span className="text-primary">Map</span>
-        </Link>
-        <p className="text-muted-foreground text-sm mt-2 font-body">
-          Start understanding your emotional patterns.
-        </p>
+        <p className="text-white/40 text-sm font-body">Start understanding your emotional patterns.</p>
       </div>
 
-      <button
-        onClick={handleGoogle}
-        disabled={googleLoading}
-        className="w-full flex items-center justify-center gap-2.5 border border-border bg-background hover:bg-accent text-foreground font-medium py-2.5 rounded-lg transition-all disabled:opacity-60 active:scale-[0.98] text-sm mb-4"
-      >
+      <button onClick={handleGoogle} disabled={googleLoading}
+        className="w-full flex items-center justify-center gap-2.5 font-medium py-2.5 rounded-lg transition-all disabled:opacity-60 active:scale-[0.98] text-sm mb-4 border text-white/80 hover:text-white"
+        style={{ background: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.1)" }}>
         {googleLoading ? <Loader2 size={15} className="animate-spin" /> : <GoogleIcon />}
         Continue with Google
       </button>
 
       <div className="flex items-center gap-3 mb-4">
-        <div className="flex-1 h-px bg-border" />
-        <span className="text-xs text-muted-foreground font-body">or</span>
-        <div className="flex-1 h-px bg-border" />
+        <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.08)" }} />
+        <span className="text-xs text-white/30">or</span>
+        <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.08)" }} />
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Email</label>
-          <input
-            type="email" autoComplete="email" required value={email}
+          <label className="text-xs font-medium text-white/40 uppercase tracking-wider">Email</label>
+          <input type="email" autoComplete="email" required value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full bg-background border border-input rounded-lg px-3.5 py-2.5 text-sm font-body outline-none focus:ring-2 focus:ring-ring transition"
-            placeholder="you@example.com"
-          />
+            className={inputClass} style={inputStyle} placeholder="you@example.com" />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Password</label>
+          <label className="text-xs font-medium text-white/40 uppercase tracking-wider">Password</label>
           <div className="relative">
-            <input
-              type={showPass ? "text" : "password"} autoComplete="new-password" required value={password}
+            <input type={showPass ? "text" : "password"} autoComplete="new-password" required value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-background border border-input rounded-lg px-3.5 py-2.5 pr-10 text-sm font-body outline-none focus:ring-2 focus:ring-ring transition"
-              placeholder="Min 8 characters"
-            />
-            <button type="button" onClick={() => setShowPass((v) => !v)}
-              className="absolute right-3 top-[18px] text-muted-foreground hover:text-foreground transition-colors">
+              className={inputClass + " pr-10"} style={inputStyle} placeholder="Min 8 characters" />
+            <button type="button" onClick={() => setShowPass(v => !v)}
+              className="absolute right-3 top-[14px] text-white/30 hover:text-white/60 transition-colors">
               {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
             </button>
           </div>
           <PasswordStrength password={password} />
         </div>
 
-        <p className="text-xs text-muted-foreground border border-border rounded-lg px-3 py-2 bg-muted/50">
+        <p className="text-xs text-white/30 rounded-lg px-3 py-2 border"
+          style={{ background: "rgba(255,255,255,0.02)", borderColor: "rgba(255,255,255,0.06)" }}>
           Your journal entries are encrypted at rest and never shared.
         </p>
 
         {error && (
-          <p className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">{error}</p>
+          <p className="text-xs rounded-lg px-3 py-2" style={{ color: "#f87171", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}>
+            {error}
+          </p>
         )}
 
         <button type="submit" disabled={loading}
-          className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground font-medium py-2.5 rounded-lg hover:opacity-90 transition-all disabled:opacity-60 active:scale-[0.98]">
+          className="w-full flex items-center justify-center gap-2 font-medium py-2.5 rounded-lg transition-all disabled:opacity-60 active:scale-[0.98] text-white"
+          style={{ background: "#8b5cf6" }}>
           {loading ? <Loader2 size={16} className="animate-spin" /> : <>Create account <ArrowRight size={15} /></>}
         </button>
       </form>
 
-      <p className="text-center text-sm text-muted-foreground mt-6">
+      <p className="text-center text-sm text-white/30 mt-6">
         Already have an account?{" "}
-        <Link href="/auth/login" className="text-primary hover:underline">Sign in</Link>
+        <Link href="/auth/login" style={{ color: "#a78bfa" }} className="hover:underline">Sign in</Link>
       </p>
     </motion.div>
   );
