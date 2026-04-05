@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { rateLimit } from "@/lib/rate-limit";
 import type { ChatMessage } from "@/lib/types";
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
 const SYSTEM_PROMPT = `You are a compassionate psychological journal assistant. Your role is to help users reflect on their day and understand their emotional state.
 
@@ -19,7 +18,7 @@ Continue asking focused questions until you have enough information to accuratel
 After 2-3 exchanges, say: "I think I have a good understanding now. Let me analyse this entry."
 
 PHASE 3 — SCORING:
-When you have enough context, output EXACTLY this JSON block (no other text after it):
+When you have enough context, output EXACTLY this JSON block and nothing after it:
 
 <analysis>
 {
@@ -35,18 +34,15 @@ When you have enough context, output EXACTLY this JSON block (no other text afte
 }
 </analysis>
 
-TONE: Warm, curious, non-clinical. You are a thoughtful friend who happens to understand psychology.
-Never be prescriptive. Never diagnose. If content suggests serious distress, gently mention professional support.`;
+TONE: Warm, curious, non-clinical. Never diagnose. If content suggests serious distress, gently mention professional support.`;
 
 export async function POST(req: NextRequest) {
-  // Auth check
   const supabase = await createServerSupabaseClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Rate limit
   const { allowed } = rateLimit(user.id);
   if (!allowed) {
     return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
@@ -54,37 +50,52 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const messages: ChatMessage[] = body.messages ?? [];
-
   if (!messages.length) {
     return NextResponse.json({ error: "No messages provided" }, { status: 400 });
   }
 
-  // Sanitise input — strip any injection attempts
-  const sanitised = messages.map((m) => ({
-    role: m.role as "user" | "assistant",
-    content: m.content.slice(0, 4000), // hard cap per message
-  }));
-
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 600,
-    system: SYSTEM_PROMPT,
-    messages: sanitised,
-  });
-
-  const text = response.content[0].type === "text" ? response.content[0].text : "";
-
-  // Check if analysis block is present
-  const analysisMatch = text.match(/<analysis>([\s\S]*?)<\/analysis>/);
-  let analysis = null;
-
-  if (analysisMatch) {
-    try {
-      analysis = JSON.parse(analysisMatch[1].trim());
-    } catch {
-      // malformed JSON — continue conversation
-    }
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json({ error: "AI service not configured" }, { status: 503 });
   }
 
-  return NextResponse.json({ reply: text, analysis });
+  // Convert messages to Gemini format
+  const geminiMessages = messages
+    .filter(m => m.role === "user" || m.role === "assistant")
+    .map(m => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content.slice(0, 4000) }],
+    }));
+
+  try {
+    const res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: geminiMessages,
+        generationConfig: { maxOutputTokens: 600, temperature: 0.7 },
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      console.error("Gemini error:", res.status, err);
+      return NextResponse.json({ error: `AI error: ${res.status}` }, { status: 502 });
+    }
+
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+
+    const analysisMatch = text.match(/<analysis>([\s\S]*?)<\/analysis>/);
+    let analysis = null;
+    if (analysisMatch) {
+      try { analysis = JSON.parse(analysisMatch[1].trim()); } catch { /* continue */ }
+    }
+
+    return NextResponse.json({ reply: text, analysis });
+  } catch (err: any) {
+    console.error("Agent error:", err?.message);
+    return NextResponse.json({ error: "Service unavailable" }, { status: 502 });
+  }
 }
