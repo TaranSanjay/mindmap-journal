@@ -74,7 +74,7 @@ function avgScores(entries: Pick<JournalEntry, "emotion_scores">[]): EmotionScor
   const n = entries.length;
   return Object.fromEntries(
     Object.entries(totals).map(([k, v]) => [k, Math.round((v / n) * 10) / 10])
-  ) as EmotionScores;
+  ) as unknown as EmotionScores;
 }
 
 export default function DashboardPage() {
