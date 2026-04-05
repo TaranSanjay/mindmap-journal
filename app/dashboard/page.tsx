@@ -44,7 +44,7 @@ function computeStreak(entries: Pick<JournalEntry, "created_at">[]): number {
   const days = entries.map((e) =>
     format(parseISO(e.created_at), "yyyy-MM-dd")
   );
-  const unique = [...new Set(days)].sort().reverse();
+  const unique = Array.from(new Set(days)).sort().reverse();
   let streak = 1;
   for (let i = 1; i < unique.length; i++) {
     const diff = differenceInDays(parseISO(unique[i - 1]), parseISO(unique[i]));
