@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
-import { createClient } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase-browser";
 
 export default function LoginPage() {
   const router = useRouter();

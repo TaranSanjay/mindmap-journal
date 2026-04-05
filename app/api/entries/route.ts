@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase";
+import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { rateLimit } from "@/lib/rate-limit";
 import { compositeScore } from "@/lib/utils";
 import type { EmotionScores } from "@/lib/types";

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Loader2, BarChart2, LogOut, BookOpen } from "lucide-react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase-browser";
 import type { ChatMessage, EmotionScores } from "@/lib/types";
 import { EMOTION_COLORS, EMOTION_LABELS, compositeScore, scoreLabel, scoreColor } from "@/lib/utils";
 import EmotionRadarChart from "@/components/dashboard/EmotionRadar";
