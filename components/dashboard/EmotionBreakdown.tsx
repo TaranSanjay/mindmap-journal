@@ -42,6 +42,7 @@ export default function EmotionBreakdown({ entries }: Props) {
         />
         <YAxis
           domain={[0, 10]}
+          ticks={[0, 2, 4, 6, 8, 10]}
           tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
           axisLine={false}
           tickLine={false}

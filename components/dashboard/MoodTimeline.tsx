@@ -49,8 +49,8 @@ export default function MoodTimeline({ entries }: Props) {
           tickLine={false}
         />
         <YAxis
-          domain={[1, 10]}
-          ticks={[1, 3, 5, 7, 10]}
+          domain={[0, 10]}
+          ticks={[0, 2, 4, 6, 8, 10]}
           tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))", fontFamily: "JetBrains Mono" }}
           axisLine={false}
           tickLine={false}
