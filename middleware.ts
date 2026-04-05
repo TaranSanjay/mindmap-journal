@@ -8,42 +8,55 @@ export async function middleware(request: NextRequest) {
     request: { headers: request.headers },
   });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({ name, value, ...options });
-          response.cookies.set({ name, value, ...options });
-        },
-        remove(name: string, options: CookieOptions) {
-          request.cookies.set({ name, value: "", ...options });
-          response.cookies.set({ name, value: "", ...options });
-        },
-      },
-    }
-  );
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  const path = request.nextUrl.pathname;
-  const isProtected = PROTECTED.some((p) => path.startsWith(p));
-
-  if (isProtected && !session) {
-    const loginUrl = new URL("/auth/login", request.url);
-    loginUrl.searchParams.set("next", path);
-    return NextResponse.redirect(loginUrl);
+  if (
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  ) {
+    return response;
   }
 
-  // Redirect already-logged-in users away from auth pages
-  if (session && (path.startsWith("/auth/login") || path.startsWith("/auth/signup"))) {
-    return NextResponse.redirect(new URL("/journal", request.url));
+  try {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        cookies: {
+          get(name: string) {
+            return request.cookies.get(name)?.value;
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            request.cookies.set({ name, value, ...options });
+            response.cookies.set({ name, value, ...options });
+          },
+          remove(name: string, options: CookieOptions) {
+            request.cookies.set({ name, value: "", ...options });
+            response.cookies.set({ name, value: "", ...options });
+          },
+        },
+      }
+    );
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    const path = request.nextUrl.pathname;
+    const isProtected = PROTECTED.some((p) => path.startsWith(p));
+
+    if (isProtected && !session) {
+      const loginUrl = new URL("/auth/login", request.url);
+      loginUrl.searchParams.set("next", path);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    if (
+      session &&
+      (path.startsWith("/auth/login") || path.startsWith("/auth/signup"))
+    ) {
+      return NextResponse.redirect(new URL("/journal", request.url));
+    }
+  } catch (e) {
+    console.error("Middleware error:", e);
   }
 
   return response;
