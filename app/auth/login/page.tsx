@@ -43,9 +43,7 @@ export default function LoginPage() {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/api/auth/callback`,
-      },
+      options: { redirectTo: `${window.location.origin}/api/auth/callback` },
     });
   }
 
@@ -53,7 +51,7 @@ export default function LoginPage() {
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.4 }}
       className="bg-card border border-border rounded-2xl p-8 shadow-sm"
     >
       <div className="mb-8">
@@ -65,85 +63,54 @@ export default function LoginPage() {
         </p>
       </div>
 
-      <button
-        onClick={handleGoogle}
-        disabled={googleLoading}
-        className="w-full flex items-center justify-center gap-2.5 border border-border bg-background hover:bg-accent text-foreground font-medium py-2.5 rounded-lg transition-all disabled:opacity-60 active:scale-[0.98] text-sm mb-4"
-      >
+      <button onClick={handleGoogle} disabled={googleLoading}
+        className="w-full flex items-center justify-center gap-2.5 border border-border bg-background hover:bg-accent text-foreground font-medium py-2.5 rounded-lg transition-all disabled:opacity-60 active:scale-[0.98] text-sm mb-4">
         {googleLoading ? <Loader2 size={15} className="animate-spin" /> : <GoogleIcon />}
         Continue with Google
       </button>
 
       <div className="flex items-center gap-3 mb-4">
         <div className="flex-1 h-px bg-border" />
-        <span className="text-xs text-muted-foreground font-body">or</span>
+        <span className="text-xs text-muted-foreground">or</span>
         <div className="flex-1 h-px bg-border" />
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            Email
-          </label>
-          <input
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Email</label>
+          <input type="email" autoComplete="email" required value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full bg-background border border-input rounded-lg px-3.5 py-2.5 text-sm font-body outline-none focus:ring-2 focus:ring-ring transition"
-            placeholder="you@example.com"
-          />
+            className="w-full bg-background border border-input rounded-lg px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring transition"
+            placeholder="you@example.com" />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            Password
-          </label>
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Password</label>
           <div className="relative">
-            <input
-              type={showPass ? "text" : "password"}
-              autoComplete="current-password"
-              required
-              value={password}
+            <input type={showPass ? "text" : "password"} autoComplete="current-password" required value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-background border border-input rounded-lg px-3.5 py-2.5 pr-10 text-sm font-body outline-none focus:ring-2 focus:ring-ring transition"
-              placeholder="••••••••"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPass((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-            >
+              className="w-full bg-background border border-input rounded-lg px-3.5 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-ring transition"
+              placeholder="••••••••" />
+            <button type="button" onClick={() => setShowPass((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
               {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
             </button>
           </div>
         </div>
 
         {error && (
-          <p className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
-            {error}
-          </p>
+          <p className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">{error}</p>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground font-medium py-2.5 rounded-lg hover:opacity-90 transition-all disabled:opacity-60 active:scale-[0.98]"
-        >
-          {loading ? (
-            <Loader2 size={16} className="animate-spin" />
-          ) : (
-            <>Sign in <ArrowRight size={15} /></>
-          )}
+        <button type="submit" disabled={loading}
+          className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground font-medium py-2.5 rounded-lg hover:opacity-90 transition-all disabled:opacity-60 active:scale-[0.98]">
+          {loading ? <Loader2 size={16} className="animate-spin" /> : <>Sign in <ArrowRight size={15} /></>}
         </button>
       </form>
 
       <p className="text-center text-sm text-muted-foreground mt-6">
         No account?{" "}
-        <Link href="/auth/signup" className="text-primary hover:underline">
-          Create one
-        </Link>
+        <Link href="/auth/signup" className="text-primary hover:underline">Create one</Link>
       </p>
     </motion.div>
   );
