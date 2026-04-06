@@ -13,7 +13,7 @@ import { EMOTION_COLORS, EMOTION_LABELS, scoreLabel, scoreColor } from "@/lib/ut
 const dark = { bg: "#0f0f11", card: "rgba(255,255,255,0.03)", border: "rgba(255,255,255,0.08)" };
 
 // ── Consistency Calendar ───────────────────────────────────────
-function ConsistencyCalendar({ entries }: { entries: Pick<JournalEntry, "id" | "created_at" | "composite_score">[] }) {
+function ConsistencyCalendar({ entries }: { entries: Pick<JournalEntry, "id" | "created_at" | "entry_date" | "composite_score">[] }) {
   const [viewDate, setViewDate] = useState(new Date());
 
   const monthStart = startOfMonth(viewDate);
