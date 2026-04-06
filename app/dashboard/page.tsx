@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -161,13 +162,18 @@ export default function DashboardPage() {
                 {entries.slice(0, 10).map(e => {
                   const color = scoreColor(e.composite_score);
                   return (
-                    <div key={e.id} className="flex items-center justify-between py-2.5 border-b last:border-0" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
+                    <Link
+                      key={e.id}
+                      href={`/entries/${e.id}`}
+                      className="flex items-center justify-between py-2.5 border-b last:border-0 hover:bg-white/[0.02] rounded-lg px-2 -mx-2 transition-colors cursor-pointer"
+                      style={{ borderColor: "rgba(255,255,255,0.05)" }}
+                    >
                       <span className="text-sm text-white/40">{format(parseISO(e.created_at), "EEEE, MMM d")}</span>
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-mono font-medium" style={{ color }}>{e.composite_score.toFixed(1)}</span>
                         <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: `${color}18`, color }}>{scoreLabel(e.composite_score)}</span>
                       </div>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>

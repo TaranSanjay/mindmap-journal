@@ -132,7 +132,7 @@ export default function JournalPage() {
     const transcript = messages.map(m => `${m.role === "user" ? "You" : "Journal"}: ${m.content}`).join("\n\n");
     const res = await fetch("/api/entries", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: transcript, emotion_scores: emotionScores, turn_count: messages.filter(m => m.role === "user").length }),
+      body: JSON.stringify({ content: transcript, emotion_scores: emotionScores, turn_count: messages.filter(m => m.role === "user").length, messages }),
     });
     setSaving(false);
     if (res.ok) { setSaved(true); setTimeout(() => router.push("/dashboard"), 1200); }
