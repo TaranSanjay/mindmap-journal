@@ -20,13 +20,14 @@ export async function POST(req: NextRequest) {
 
   const prompt = `You are reading a journal conversation between a user and an AI assistant.
 
-Summarise the user's day and emotional experience in 3-4 warm, empathetic paragraphs.
-Write directly to the user using "you" — like a thoughtful friend reflecting back what they shared.
-Focus on: what happened, how they felt, any tensions or resolutions, and what lingered most.
-Do not mention scores or analysis. Write as natural prose only.
+Rewrite the user's day as a first-person journal entry from their own perspective — as if they wrote it themselves after reflecting. Use "I" throughout.
+
+Cover everything they mentioned: events, emotions, physical state, social interactions, worries, and any resolution or lingering feelings. Write in flowing natural prose, 3-4 paragraphs. Make it feel personal and specific to what they actually said — not generic.
+
+Do not mention scores, analysis, or the AI assistant. Just write it as their own journal entry.
 
 CONVERSATION:
-${transcript.slice(0, 6000)}`;
+${transcript.slice(0, 8000)}`;
 
   try {
     const res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
@@ -34,7 +35,7 @@ ${transcript.slice(0, 6000)}`;
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 800, temperature: 0.7 },
+        generationConfig: { maxOutputTokens: 1000, temperature: 0.7 },
       }),
     });
     if (!res.ok) return NextResponse.json({ error: "AI error" }, { status: 502 });

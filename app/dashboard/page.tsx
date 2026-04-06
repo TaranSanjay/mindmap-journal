@@ -6,11 +6,9 @@ import { motion } from "framer-motion";
 import { PenLine, LogOut, TrendingUp, Flame, Brain, ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { createClient } from "@/lib/supabase-browser";
 import MoodTimeline from "@/components/dashboard/MoodTimeline";
-import EmotionBreakdown from "@/components/dashboard/EmotionBreakdown";
-import EmotionRadarChart from "@/components/dashboard/EmotionRadar";
+import EmotionAnalytics from "@/components/dashboard/EmotionAnalytics";
 import type { JournalEntry, EmotionScores, EmotionKey } from "@/lib/types";
-import { EMOTION_COLORS, EMOTION_LABELS, scoreLabel, scoreColor } from "@/lib/utils";
-import { format, parseISO, differenceInDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, isToday, addMonths, subMonths } from "date-fns";
+import { EMOTION_COLORS, EMOTION_LABELS, scoreLabel, scoreColor } from "@/lib/utils";import { format, parseISO, differenceInDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, isToday, addMonths, subMonths } from "date-fns";
 
 const dark = { bg: "#0f0f11", card: "rgba(255,255,255,0.03)", border: "rgba(255,255,255,0.08)" };
 
@@ -22,7 +20,6 @@ function ConsistencyCalendar({ entries }: { entries: Pick<JournalEntry, "id" | "
   const monthEnd = endOfMonth(viewDate);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
-  // Map date string → entries that day
   const entryMap = new Map<string, typeof entries[0][]>();
   entries.forEach(e => {
     const key = format(parseISO(e.created_at), "yyyy-MM-dd");
@@ -30,13 +27,9 @@ function ConsistencyCalendar({ entries }: { entries: Pick<JournalEntry, "id" | "
     entryMap.get(key)!.push(e);
   });
 
-  // Days of week header
-  const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-  // Padding before first day
+  const weekdays = ["S", "M", "T", "W", "T", "F", "S"];
   const startPad = monthStart.getDay();
 
-  // Compute longest streak in current month
   let maxStreak = 0, cur = 0;
   days.forEach(d => {
     const key = format(d, "yyyy-MM-dd");
@@ -44,41 +37,46 @@ function ConsistencyCalendar({ entries }: { entries: Pick<JournalEntry, "id" | "
   });
 
   const daysWithEntry = days.filter(d => entryMap.has(format(d, "yyyy-MM-dd"))).length;
+  const completionRate = Math.round((daysWithEntry / days.length) * 100);
+
+  // Avg score this month
+  const monthEntries = entries.filter(e => {
+    const d = parseISO(e.created_at);
+    return isSameMonth(d, viewDate);
+  });
+  const avgMonthScore = monthEntries.length
+    ? Math.round((monthEntries.reduce((s, e) => s + e.composite_score, 0) / monthEntries.length) * 10) / 10
+    : null;
 
   return (
-    <div className="rounded-2xl border p-6 space-y-5" style={{ background: dark.card, borderColor: dark.border }}>
-      {/* Month nav */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="font-display text-xl font-semibold text-white">{format(viewDate, "MMMM yyyy")}</h2>
-          <p className="text-xs text-white/30 mt-0.5">{daysWithEntry} of {days.length} days journalled</p>
+    <div className="rounded-2xl border p-5 space-y-4" style={{ background: dark.card, borderColor: dark.border }}>
+      {/* Header: arrows LEFT, title center, today RIGHT */}
+      <div className="flex items-center gap-2">
+        <button onClick={() => setViewDate(v => subMonths(v, 1))}
+          className="w-7 h-7 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/[0.05] transition-colors">
+          <ChevronLeft size={15} />
+        </button>
+        <button onClick={() => setViewDate(v => addMonths(v, 1))}
+          className="w-7 h-7 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/[0.05] transition-colors">
+          <ChevronRight size={15} />
+        </button>
+        <div className="flex-1 text-center">
+          <span className="font-display text-base font-semibold text-white">{format(viewDate, "MMMM yyyy")}</span>
+          <span className="text-xs text-white/30 ml-2">{daysWithEntry}/{days.length} days</span>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setViewDate(v => subMonths(v, 1))}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/[0.05] transition-colors">
-            <ChevronLeft size={16} />
-          </button>
-          <button onClick={() => setViewDate(new Date())}
-            className="px-3 h-8 rounded-lg text-xs text-white/40 hover:text-white hover:bg-white/[0.05] transition-colors">
-            Today
-          </button>
-          <button onClick={() => setViewDate(v => addMonths(v, 1))}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/[0.05] transition-colors">
-            <ChevronRight size={16} />
-          </button>
-        </div>
+        <button onClick={() => setViewDate(new Date())}
+          className="px-2.5 h-7 rounded-lg text-xs text-white/40 hover:text-white hover:bg-white/[0.05] transition-colors border"
+          style={{ borderColor: dark.border }}>
+          Today
+        </button>
       </div>
 
-      {/* Weekday headers */}
+      {/* Compact grid */}
       <div className="grid grid-cols-7 gap-1">
-        {weekdays.map(d => (
-          <div key={d} className="text-center text-xs text-white/20 font-medium py-1">{d}</div>
+        {weekdays.map((d, i) => (
+          <div key={`${d}-${i}`} className="text-center text-[10px] text-white/20 font-medium py-0.5">{d}</div>
         ))}
-
-        {/* Padding cells */}
         {Array.from({ length: startPad }).map((_, i) => <div key={`pad-${i}`} />)}
-
-        {/* Day cells */}
         {days.map(day => {
           const key = format(day, "yyyy-MM-dd");
           const dayEntries = entryMap.get(key) ?? [];
@@ -93,50 +91,54 @@ function ConsistencyCalendar({ entries }: { entries: Pick<JournalEntry, "id" | "
             <Link
               key={key}
               href={hasEntry && dayEntries[0] ? `/entries/${dayEntries[0].id}` : "#"}
-              className={`relative flex flex-col items-center justify-center rounded-xl aspect-square transition-all ${hasEntry ? "cursor-pointer hover:scale-105" : "cursor-default"}`}
+              className={`relative flex flex-col items-center justify-center rounded-lg py-1.5 transition-all ${hasEntry ? "cursor-pointer hover:scale-105" : "cursor-default"}`}
               style={{
-                background: hasEntry ? `${color}18` : "transparent",
-                border: today ? `1px solid rgba(139,92,246,0.6)` : hasEntry ? `1px solid ${color}30` : "1px solid transparent",
+                background: hasEntry ? `${color}15` : "transparent",
+                border: today ? `1px solid rgba(139,92,246,0.5)` : hasEntry ? `1px solid ${color}25` : "1px solid transparent",
+                minHeight: "44px",
               }}
             >
-              <span className={`text-sm font-medium ${today ? "text-purple-400" : hasEntry ? "text-white" : "text-white/20"}`}>
+              <span className={`text-xs font-medium leading-none ${today ? "text-purple-400" : hasEntry ? "text-white" : "text-white/20"}`}>
                 {format(day, "d")}
               </span>
               {hasEntry && (
-                <div className="w-1.5 h-1.5 rounded-full mt-0.5" style={{ background: color! }} />
-              )}
-              {hasEntry && avgScore && (
-                <span className="text-[9px] font-mono" style={{ color: color! }}>{avgScore.toFixed(1)}</span>
+                <div className="w-1 h-1 rounded-full mt-1" style={{ background: color! }} />
               )}
             </Link>
           );
         })}
       </div>
 
-      {/* Month stats row */}
-      <div className="grid grid-cols-3 gap-3 pt-1">
+      {/* 4 stat boxes */}
+      <div className="grid grid-cols-4 gap-2">
         {[
-          { label: "Days journalled", value: `${daysWithEntry}`, sub: `of ${days.length} days` },
-          { label: "Completion rate", value: `${Math.round((daysWithEntry / days.length) * 100)}%`, sub: "this month" },
+          { label: "Days logged", value: `${daysWithEntry}`, sub: `of ${days.length}` },
+          { label: "Completion", value: `${completionRate}%`, sub: "this month" },
           { label: "Best streak", value: `${maxStreak}d`, sub: "this month" },
+          {
+            label: "Avg score",
+            value: avgMonthScore ? `${avgMonthScore}` : "—",
+            sub: avgMonthScore ? scoreLabel(avgMonthScore) : "no entries",
+            color: avgMonthScore ? scoreColor(avgMonthScore) : undefined,
+          },
         ].map(s => (
           <div key={s.label} className="rounded-xl p-3 text-center border" style={{ background: "rgba(255,255,255,0.02)", borderColor: dark.border }}>
-            <p className="text-xl font-display font-semibold text-white">{s.value}</p>
-            <p className="text-xs text-white/30 mt-0.5">{s.label}</p>
-            <p className="text-[10px] text-white/20">{s.sub}</p>
+            <p className="text-lg font-display font-semibold" style={{ color: s.color ?? "white" }}>{s.value}</p>
+            <p className="text-[10px] text-white/30 mt-0.5 leading-tight">{s.label}</p>
+            <p className="text-[9px] text-white/20">{s.sub}</p>
           </div>
         ))}
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 text-xs text-white/30 pt-1">
+      <div className="flex items-center gap-4 text-[10px] text-white/20">
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(139,92,246,0.6)" }} />
+          <div className="w-2.5 h-2.5 rounded-sm" style={{ border: "1px solid rgba(139,92,246,0.5)" }} />
           <span>Today</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm" style={{ background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.3)" }} />
-          <span>Entry logged · colour = mood score</span>
+          <div className="w-2.5 h-2.5 rounded-sm" style={{ background: "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.25)" }} />
+          <span>Entry logged · colour = mood</span>
         </div>
       </div>
     </div>
@@ -222,7 +224,6 @@ export default function DashboardPage() {
   const streak = computeStreak(entries);
   const longestStreak = computeLongestStreak(entries);
   const dominant = dominantEmotion(entries);
-  const averages = avgScores(entries);
 
   return (
     <div className="min-h-screen" style={{ background: dark.bg }}>
@@ -287,24 +288,9 @@ export default function DashboardPage() {
               <MoodTimeline entries={entries} />
             </motion.div>
 
-            {/* ── Emotion breakdown + radar ── */}
-            <motion.div variants={fadeUp} className="grid md:grid-cols-3 gap-4">
-              <div className="md:col-span-2 rounded-2xl p-6 space-y-3 border" style={{ background: dark.card, borderColor: dark.border }}>
-                <h2 className="font-display text-lg font-semibold text-white">Emotion breakdown</h2>
-                <EmotionBreakdown entries={entries} />
-              </div>
-              <div className="rounded-2xl p-6 flex flex-col items-center justify-center space-y-4 border" style={{ background: dark.card, borderColor: dark.border }}>
-                <h2 className="font-display text-lg font-semibold text-white self-start">Avg emotions</h2>
-                <EmotionRadarChart scores={averages} size={160} />
-                <div className="w-full space-y-1.5">
-                  {(Object.keys(averages) as EmotionKey[]).map(k => (
-                    <div key={k} className="flex items-center justify-between text-xs">
-                      <span className="text-white/40">{EMOTION_LABELS[k]}</span>
-                      <span className="font-mono font-medium" style={{ color: EMOTION_COLORS[k] }}>{averages[k]}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            {/* ── Emotion analytics (unified) ── */}
+            <motion.div variants={fadeUp}>
+              <EmotionAnalytics entries={entries} />
             </motion.div>
 
             {/* ── Recent entries ── */}
