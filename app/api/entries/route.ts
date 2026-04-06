@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
             .replace(/<analysis>[\s\S]*?<\/analysis>/g, "")
             .replace(/<analysis>[\s\S]*/g, "")
             .trim(),
+          // deliberately omit timestamp — not needed in DB
         }))
         .filter(m => m.content.length > 0),
     })
@@ -60,8 +61,8 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) {
-    console.error("DB insert error:", error.message);
-    return NextResponse.json({ error: "Failed to save entry" }, { status: 500 });
+    console.error("DB insert error:", error.message, error.details, error.hint);
+    return NextResponse.json({ error: "Failed to save entry", detail: error.message }, { status: 500 });
   }
 
   return NextResponse.json({ entry: data }, { status: 201 });

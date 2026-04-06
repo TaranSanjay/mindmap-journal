@@ -40,14 +40,10 @@ function Bubble({ msg }: { msg: ChatMessage }) {
   );
 }
 
-function ScoreReveal({ scores, entryDate, onDateChange, onSave, saving }: {
-  scores: EmotionScores; entryDate: string; onDateChange: (d: string) => void; onSave: () => void; saving: boolean;
+function ScoreReveal({ scores, onSave, saving }: {
+  scores: EmotionScores; onSave: () => void; saving: boolean;
 }) {
   const composite = compositeScore(scores);
-  const today = format(new Date(), "yyyy-MM-dd");
-  const isValidDate = /^\d{4}-\d{2}-\d{2}$/.test(entryDate) && !isNaN(new Date(entryDate).getTime());
-  const isBackdate = isValidDate && entryDate !== today;
-
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
       className="mx-4 mb-4 rounded-2xl p-5 space-y-4 border"
@@ -77,36 +73,6 @@ function ScoreReveal({ scores, entryDate, onDateChange, onSave, saving }: {
             <span className="text-xs font-mono w-6 text-right" style={{ color: EMOTION_COLORS[key] }}>{scores[key]}</span>
           </div>
         ))}
-      </div>
-
-      {/* Date picker */}
-      <div className="rounded-xl border px-4 py-3 space-y-2" style={{ background: "rgba(255,255,255,0.02)", borderColor: dark.border }}>
-        <div className="flex items-center gap-2">
-          <Calendar size={13} style={{ color: "#a78bfa" }} />
-          <span className="text-xs text-white/50 uppercase tracking-wider">Entry date</span>
-        </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <input
-            type="date"
-            value={entryDate}
-            max={today}
-            onChange={e => {
-              const val = e.target.value;
-              if (/^\d{4}-\d{2}-\d{2}$/.test(val) && !isNaN(new Date(val + "T12:00:00").getTime())) {
-                onDateChange(val);
-              }
-            }}
-            className="bg-transparent text-sm text-white outline-none cursor-pointer"
-            style={{ colorScheme: "dark" }}
-          />
-          {isBackdate && (
-            <span className="text-xs px-2 py-0.5 rounded-full"
-              style={{ background: "rgba(139,92,246,0.15)", color: "#a78bfa", border: "1px solid rgba(139,92,246,0.3)" }}>
-              Backdated to {format(new Date(entryDate + "T12:00:00"), "MMM d")}
-            </span>
-          )}
-        </div>
-        <p className="text-[10px] text-white/25">Writing about a different day? Change the date above.</p>
       </div>
 
       <button onClick={onSave} disabled={saving}
@@ -224,7 +190,14 @@ export default function JournalPage() {
       body: JSON.stringify({ content: transcript, emotion_scores: emotionScores, turn_count: messages.filter(m => m.role === "user").length, messages, entry_date: entryDate }),
     });
     setSaving(false);
-    if (res.ok) { setSaved(true); setTimeout(() => router.push("/dashboard"), 1200); }
+    if (res.ok) {
+      setSaved(true);
+      setTimeout(() => { window.location.href = "/dashboard"; }, 1000);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      console.error("Save failed:", err);
+      alert("Save failed: " + (err.detail ?? err.error ?? "unknown error"));
+    }
   }
 
   async function handleLogout() {
@@ -285,7 +258,7 @@ export default function JournalPage() {
           </div>
 
           {emotionScores && !saved && (
-            <ScoreReveal scores={emotionScores} entryDate={entryDate} onDateChange={setEntryDate} onSave={saveEntry} saving={saving} />
+            <ScoreReveal scores={emotionScores} onSave={saveEntry} saving={saving} />
           )}
 
           {saved && (
