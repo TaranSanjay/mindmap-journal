@@ -12,10 +12,11 @@ export interface JournalEntry {
   id: string;
   user_id: string;
   created_at: string;
-  content: string;           // full conversation transcript
+  content: string;
   emotion_scores: EmotionScores;
-  composite_score: number;   // 1–10
-  turn_count: number;        // how many agent clarifications happened
+  composite_score: number;
+  turn_count: number;
+  messages: { role: string; content: string }[];
 }
 
 export interface ChatMessage {
