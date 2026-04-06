@@ -45,7 +45,8 @@ function ScoreReveal({ scores, entryDate, onDateChange, onSave, saving }: {
 }) {
   const composite = compositeScore(scores);
   const today = format(new Date(), "yyyy-MM-dd");
-  const isBackdate = entryDate !== today;
+  const isValidDate = /^\d{4}-\d{2}-\d{2}$/.test(entryDate) && !isNaN(new Date(entryDate).getTime());
+  const isBackdate = isValidDate && entryDate !== today;
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
@@ -79,16 +80,25 @@ function ScoreReveal({ scores, entryDate, onDateChange, onSave, saving }: {
       </div>
 
       {/* Date picker */}
-      <div className="rounded-xl border px-4 py-3 space-y-1.5" style={{ background: "rgba(255,255,255,0.02)", borderColor: dark.border }}>
+      <div className="rounded-xl border px-4 py-3 space-y-2" style={{ background: "rgba(255,255,255,0.02)", borderColor: dark.border }}>
         <div className="flex items-center gap-2">
           <Calendar size={13} style={{ color: "#a78bfa" }} />
           <span className="text-xs text-white/50 uppercase tracking-wider">Entry date</span>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          <input type="date" value={entryDate} max={today}
-            onChange={e => onDateChange(e.target.value)}
-            className="bg-transparent text-sm text-white outline-none border-b border-white/10 focus:border-purple-500/50 transition-colors pb-0.5"
-            style={{ colorScheme: "dark" }} />
+          <input
+            type="date"
+            value={entryDate}
+            max={today}
+            onChange={e => {
+              const val = e.target.value;
+              if (/^\d{4}-\d{2}-\d{2}$/.test(val) && !isNaN(new Date(val + "T12:00:00").getTime())) {
+                onDateChange(val);
+              }
+            }}
+            className="bg-transparent text-sm text-white outline-none cursor-pointer"
+            style={{ colorScheme: "dark" }}
+          />
           {isBackdate && (
             <span className="text-xs px-2 py-0.5 rounded-full"
               style={{ background: "rgba(139,92,246,0.15)", color: "#a78bfa", border: "1px solid rgba(139,92,246,0.3)" }}>
@@ -108,8 +118,60 @@ function ScoreReveal({ scores, entryDate, onDateChange, onSave, saving }: {
   );
 }
 
+// ── Date picker shown BEFORE journaling starts ─────────────────
+function DateSelector({ entryDate, onDateChange, onConfirm }: {
+  entryDate: string; onDateChange: (d: string) => void; onConfirm: () => void;
+}) {
+  const today = format(new Date(), "yyyy-MM-dd");
+  const isValidDate = /^\d{4}-\d{2}-\d{2}$/.test(entryDate) && !isNaN(new Date(entryDate).getTime());
+  const isBackdate = isValidDate && entryDate !== today;
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+      className="px-4 pb-6 max-w-2xl w-full mx-auto">
+      <div className="rounded-2xl border p-5 space-y-4" style={{ background: dark.card, borderColor: dark.border }}>
+        <div>
+          <p className="text-white font-medium text-sm">Which day are you writing about?</p>
+          <p className="text-white/30 text-xs mt-0.5">Defaults to today — change if you&apos;re catching up on a past day.</p>
+        </div>
+
+        <div className="flex items-center gap-3 flex-wrap">
+          <input
+            type="date"
+            value={entryDate}
+            max={today}
+            onChange={e => {
+              const val = e.target.value;
+              if (/^\d{4}-\d{2}-\d{2}$/.test(val) && !isNaN(new Date(val + "T12:00:00").getTime())) {
+                onDateChange(val);
+              }
+            }}
+            className="bg-transparent text-sm text-white outline-none cursor-pointer border-b border-white/15 focus:border-purple-500/50 transition-colors pb-0.5"
+            style={{ colorScheme: "dark" }}
+          />
+          {isBackdate && (
+            <span className="text-xs px-2 py-0.5 rounded-full"
+              style={{ background: "rgba(139,92,246,0.15)", color: "#a78bfa", border: "1px solid rgba(139,92,246,0.3)" }}>
+              Writing about {format(new Date(entryDate + "T12:00:00"), "EEEE, MMM d")}
+            </span>
+          )}
+        </div>
+
+        <button onClick={onConfirm}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium text-white transition-all active:scale-[0.98] hover:opacity-90"
+          style={{ background: "#8b5cf6" }}>
+          Start journaling →
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function JournalPage() {
   const router = useRouter();
+  const today = format(new Date(), "yyyy-MM-dd");
+  const [entryDate, setEntryDate] = useState(today);
+  const [dateConfirmed, setDateConfirmed] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     { id: "0", role: "assistant", content: WELCOME, timestamp: new Date() },
   ]);
@@ -119,7 +181,6 @@ export default function JournalPage() {
   const [analysis, setAnalysis] = useState<{ summary: string; insight: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [entryDate, setEntryDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -160,13 +221,7 @@ export default function JournalPage() {
     const transcript = messages.map(m => `${m.role === "user" ? "You" : "Journal"}: ${m.content}`).join("\n\n");
     const res = await fetch("/api/entries", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        content: transcript,
-        emotion_scores: emotionScores,
-        turn_count: messages.filter(m => m.role === "user").length,
-        messages,
-        entry_date: entryDate,
-      }),
+      body: JSON.stringify({ content: transcript, emotion_scores: emotionScores, turn_count: messages.filter(m => m.role === "user").length, messages, entry_date: entryDate }),
     });
     setSaving(false);
     if (res.ok) { setSaved(true); setTimeout(() => router.push("/dashboard"), 1200); }
@@ -195,55 +250,70 @@ export default function JournalPage() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-3 max-w-2xl w-full mx-auto">
-        <AnimatePresence initial={false}>
-          {messages.map(msg => <Bubble key={msg.id} msg={msg} />)}
-        </AnimatePresence>
-        {loading && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}><TypingIndicator /></motion.div>}
-        {analysis && !emotionScores && (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-            className="rounded-xl px-4 py-3 text-sm italic border"
-            style={{ background: dark.card, borderColor: dark.border, color: "rgba(255,255,255,0.4)" }}>
-            <BookOpen size={13} className="inline mr-1.5 -mt-0.5" />{analysis.insight}
-          </motion.div>
-        )}
-        <div ref={bottomRef} />
-      </div>
-
-      {emotionScores && !saved && (
-        <ScoreReveal
-          scores={emotionScores}
-          entryDate={entryDate}
-          onDateChange={setEntryDate}
-          onSave={saveEntry}
-          saving={saving}
-        />
-      )}
-
-      {saved && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          className="mx-4 mb-4 text-center py-3 rounded-xl text-sm border"
-          style={{ background: "rgba(16,185,129,0.08)", borderColor: "rgba(16,185,129,0.2)", color: "#34d399" }}>
-          Entry saved — taking you to your dashboard…
-        </motion.div>
-      )}
-
-      {!emotionScores && (
-        <div className="px-4 pb-6 max-w-2xl w-full mx-auto">
-          <div className="flex items-end gap-3 rounded-2xl px-4 py-3 border focus-within:border-purple-500/40 transition"
-            style={{ background: dark.card, borderColor: dark.border }}>
-            <textarea ref={textareaRef} value={input} onChange={e => setInput(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-              placeholder="Write about your day… (Enter to send)"
-              rows={1} className="flex-1 bg-transparent resize-none outline-none text-sm leading-relaxed text-white placeholder-white/20" />
-            <button onClick={sendMessage} disabled={!input.trim() || loading}
-              className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center disabled:opacity-40 transition-all hover:opacity-90 active:scale-95 text-white"
-              style={{ background: "#8b5cf6" }}>
-              {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-            </button>
-          </div>
-          <p className="text-center text-xs text-white/20 mt-2">Your entries are private and encrypted.</p>
+      {/* Date selector shown BEFORE chat starts */}
+      {!dateConfirmed && (
+        <div className="flex flex-col flex-1 items-center justify-center">
+          <DateSelector entryDate={entryDate} onDateChange={setEntryDate} onConfirm={() => setDateConfirmed(true)} />
         </div>
+      )}
+
+      {/* Chat area — shown after date is confirmed */}
+      {dateConfirmed && (
+        <>
+          {/* Date badge */}
+          <div className="flex justify-center pt-3 pb-1">
+            <span className="text-xs px-3 py-1 rounded-full text-white/40 border"
+              style={{ background: "rgba(255,255,255,0.02)", borderColor: dark.border }}>
+              <Calendar size={10} className="inline mr-1.5 -mt-0.5" style={{ color: "#a78bfa" }} />
+              {entryDate === today ? "Today" : format(new Date(entryDate + "T12:00:00"), "EEEE, MMMM d")}
+            </span>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 max-w-2xl w-full mx-auto">
+            <AnimatePresence initial={false}>
+              {messages.map(msg => <Bubble key={msg.id} msg={msg} />)}
+            </AnimatePresence>
+            {loading && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}><TypingIndicator /></motion.div>}
+            {analysis && !emotionScores && (
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                className="rounded-xl px-4 py-3 text-sm italic border"
+                style={{ background: dark.card, borderColor: dark.border, color: "rgba(255,255,255,0.4)" }}>
+                <BookOpen size={13} className="inline mr-1.5 -mt-0.5" />{analysis.insight}
+              </motion.div>
+            )}
+            <div ref={bottomRef} />
+          </div>
+
+          {emotionScores && !saved && (
+            <ScoreReveal scores={emotionScores} entryDate={entryDate} onDateChange={setEntryDate} onSave={saveEntry} saving={saving} />
+          )}
+
+          {saved && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              className="mx-4 mb-4 text-center py-3 rounded-xl text-sm border"
+              style={{ background: "rgba(16,185,129,0.08)", borderColor: "rgba(16,185,129,0.2)", color: "#34d399" }}>
+              Entry saved — taking you to your dashboard…
+            </motion.div>
+          )}
+
+          {!emotionScores && (
+            <div className="px-4 pb-6 max-w-2xl w-full mx-auto">
+              <div className="flex items-end gap-3 rounded-2xl px-4 py-3 border focus-within:border-purple-500/40 transition"
+                style={{ background: dark.card, borderColor: dark.border }}>
+                <textarea ref={textareaRef} value={input} onChange={e => setInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                  placeholder="Write about your day… (Enter to send)"
+                  rows={1} className="flex-1 bg-transparent resize-none outline-none text-sm leading-relaxed text-white placeholder-white/20" />
+                <button onClick={sendMessage} disabled={!input.trim() || loading}
+                  className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center disabled:opacity-40 transition-all hover:opacity-90 active:scale-95 text-white"
+                  style={{ background: "#8b5cf6" }}>
+                  {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                </button>
+              </div>
+              <p className="text-center text-xs text-white/20 mt-2">Your entries are private and encrypted.</p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

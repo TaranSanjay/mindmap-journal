@@ -91,7 +91,8 @@ export async function GET(req: NextRequest) {
     .from("journal_entries")
     .select("id, created_at, entry_date, emotion_scores, composite_score, turn_count")
     .eq("user_id", user.id)
-    .order("entry_date", { ascending: false })
+    .order("entry_date", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false })
     .limit(limit);
 
   if (error) return NextResponse.json({ error: "Failed to fetch entries" }, { status: 500 });
