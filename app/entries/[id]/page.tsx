@@ -123,7 +123,7 @@ export default function EntryDetailPage() {
           </Link>
           <div>
             <p className="text-white font-display text-base font-semibold leading-tight">
-              {format(parseISO(entry.entry_date ?? entry.created_at), "EEEE, MMMM d")}
+              {format(parseISO(entry.entry_date || entry.created_at), "EEEE, MMMM d")}
             </p>
             <p className="text-white/30 text-xs">
               {format(parseISO(entry.created_at), "yyyy · h:mm a")}
