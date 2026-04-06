@@ -18,16 +18,18 @@ export async function POST(req: NextRequest) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return NextResponse.json({ error: "AI not configured" }, { status: 503 });
 
-  const prompt = `You are reading a journal conversation between a user and an AI assistant.
+  const prompt = `You are reading a journal conversation. Write a first-person journal entry from the user's perspective.
 
-Rewrite the user's day as a first-person journal entry from their own perspective — as if they wrote it themselves after reflecting. Use "I" throughout.
-
-Cover everything they mentioned: events, emotions, physical state, social interactions, worries, and any resolution or lingering feelings. Write in flowing natural prose, 3-4 paragraphs. Make it feel personal and specific to what they actually said — not generic.
-
-Do not mention scores, analysis, or the AI assistant. Just write it as their own journal entry.
+STRICT RULES:
+- Write EXACTLY 2 paragraphs. No more, no less.
+- Each paragraph must be 3-5 sentences.
+- The final sentence MUST be a complete sentence ending with a period.
+- Use "I" throughout. Cover what happened, how they felt, and what lingered.
+- Do NOT mention scores, analysis, or the AI assistant.
+- Stop writing after the second paragraph ends. Do not add anything after.
 
 CONVERSATION:
-${transcript.slice(0, 8000)}`;
+${transcript.slice(0, 3000)}`;
 
   try {
     const res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
@@ -35,12 +37,28 @@ ${transcript.slice(0, 8000)}`;
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 1000, temperature: 0.7 },
+        generationConfig: { maxOutputTokens: 600, temperature: 0.65 },
       }),
     });
     if (!res.ok) return NextResponse.json({ error: "AI error" }, { status: 502 });
     const data = await res.json();
-    const summary = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+
+    // Ensure summary ends on a complete sentence
+    const endsCleanly = /[.!?]['"]?\s*$/.test(raw.trimEnd());
+    let summary = raw.trim();
+    if (!endsCleanly) {
+      const lastEnd = Math.max(
+        summary.lastIndexOf(". "),
+        summary.lastIndexOf("! "),
+        summary.lastIndexOf("? "),
+        summary.lastIndexOf(".\n"),
+      );
+      if (lastEnd > summary.length * 0.5) {
+        summary = summary.slice(0, lastEnd + 1).trim();
+      }
+    }
+
     return NextResponse.json({ summary });
   } catch {
     return NextResponse.json({ error: "Service unavailable" }, { status: 502 });
