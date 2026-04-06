@@ -34,7 +34,7 @@ ${transcript.slice(0, 6000)}`;
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 500, temperature: 0.7 },
+        generationConfig: { maxOutputTokens: 800, temperature: 0.7 },
       }),
     });
     if (!res.ok) return NextResponse.json({ error: "AI error" }, { status: 502 });

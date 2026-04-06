@@ -38,10 +38,15 @@ export async function POST(req: NextRequest) {
       emotion_scores,
       composite_score: composite,
       turn_count: Math.min(turn_count, 20),
-      messages: messages.map(m => ({
-        role: m.role,
-        content: m.content.replace(/<analysis>[\s\S]*?<\/analysis>/g, "").trim(),
-      })),
+      messages: messages
+        .map(m => ({
+          role: m.role,
+          content: m.content
+            .replace(/<analysis>[\s\S]*?<\/analysis>/g, "")
+            .replace(/<analysis>[\s\S]*/g, "")
+            .trim(),
+        }))
+        .filter(m => m.content.length > 0), // drop messages that were purely analysis
     })
     .select()
     .single();

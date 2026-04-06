@@ -82,16 +82,28 @@ export default function EntryDetailPage() {
 
   if (!entry) return null;
 
-  const messages: { role: string; content: string }[] =
-    Array.isArray(entry.messages) && entry.messages.length > 0
-      ? entry.messages
-      : entry.content
-          .split("\n\n")
-          .filter(Boolean)
-          .map(line => ({
-            role: line.startsWith("You:") ? "user" : "assistant",
-            content: line.replace(/^(You|Journal):\s*/, "").trim(),
-          }));
+  const messages: { role: string; content: string }[] = (() => {
+    const raw: { role: string; content: string }[] =
+      Array.isArray(entry.messages) && entry.messages.length > 0
+        ? entry.messages
+        : entry.content
+            .split("\n\n")
+            .filter(Boolean)
+            .map(line => ({
+              role: line.startsWith("You:") ? "user" : "assistant",
+              content: line.replace(/^(You|Journal):\s*/, "").trim(),
+            }));
+
+    return raw
+      .map(m => ({
+        ...m,
+        content: m.content
+          .replace(/<analysis>[\s\S]*?<\/analysis>/g, "")
+          .replace(/<analysis>[\s\S]*/g, "")
+          .trim(),
+      }))
+      .filter(m => m.content.length > 0);
+  })();
 
   const composite = entry.composite_score;
   const color = scoreColor(composite);
