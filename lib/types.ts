@@ -12,6 +12,7 @@ export interface JournalEntry {
   id: string;
   user_id: string;
   created_at: string;
+  entry_date: string;        // YYYY-MM-DD — the date the entry is for (may differ from created_at)
   content: string;
   emotion_scores: EmotionScores;
   composite_score: number;

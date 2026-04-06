@@ -22,7 +22,7 @@ function ConsistencyCalendar({ entries }: { entries: Pick<JournalEntry, "id" | "
 
   const entryMap = new Map<string, typeof entries[0][]>();
   entries.forEach(e => {
-    const key = format(parseISO(e.created_at), "yyyy-MM-dd");
+    const key = (e.entry_date ?? format(parseISO(e.created_at), "yyyy-MM-dd"));
     if (!entryMap.has(key)) entryMap.set(key, []);
     entryMap.get(key)!.push(e);
   });
@@ -158,9 +158,9 @@ function StatCard({ icon: Icon, label, value, sub, color }: { icon: React.Elemen
   );
 }
 
-function computeStreak(entries: Pick<JournalEntry, "created_at">[]): number {
+function computeStreak(entries: Pick<JournalEntry, "created_at" | "entry_date">[]): number {
   if (!entries.length) return 0;
-  const unique = Array.from(new Set(entries.map(e => format(parseISO(e.created_at), "yyyy-MM-dd")))).sort().reverse();
+  const unique = Array.from(new Set(entries.map(e => e.entry_date ?? format(parseISO(e.created_at), "yyyy-MM-dd")))).sort().reverse();
   let streak = 1;
   for (let i = 1; i < unique.length; i++) {
     if (differenceInDays(parseISO(unique[i - 1]), parseISO(unique[i])) === 1) streak++;
@@ -169,9 +169,9 @@ function computeStreak(entries: Pick<JournalEntry, "created_at">[]): number {
   return streak;
 }
 
-function computeLongestStreak(entries: Pick<JournalEntry, "created_at">[]): number {
+function computeLongestStreak(entries: Pick<JournalEntry, "created_at" | "entry_date">[]): number {
   if (!entries.length) return 0;
-  const unique = Array.from(new Set(entries.map(e => format(parseISO(e.created_at), "yyyy-MM-dd")))).sort();
+  const unique = Array.from(new Set(entries.map(e => e.entry_date ?? format(parseISO(e.created_at), "yyyy-MM-dd")))).sort();
   let best = 1, cur = 1;
   for (let i = 1; i < unique.length; i++) {
     if (differenceInDays(parseISO(unique[i]), parseISO(unique[i - 1])) === 1) { cur++; best = Math.max(best, cur); }
@@ -303,7 +303,7 @@ export default function DashboardPage() {
                     <Link key={e.id} href={`/entries/${e.id}`}
                       className="flex items-center justify-between py-2.5 border-b last:border-0 hover:bg-white/[0.02] rounded-lg px-2 -mx-2 transition-colors"
                       style={{ borderColor: "rgba(255,255,255,0.05)" }}>
-                      <span className="text-sm text-white/40">{format(parseISO(e.created_at), "EEEE, MMM d")}</span>
+                      <span className="text-sm text-white/40">{format(parseISO(e.entry_date ?? e.created_at), "EEEE, MMM d")}</span>
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-mono font-medium" style={{ color }}>{e.composite_score.toFixed(1)}</span>
                         <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: `${color}18`, color }}>{scoreLabel(e.composite_score)}</span>
